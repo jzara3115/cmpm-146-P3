@@ -66,3 +66,41 @@ if __name__ == '__main__':
     except Exception:
         traceback.print_exc(file=sys.stdout)
         logging.exception("Error in bot.")
+
+
+
+
+# New behavior tree for our bot using new functions in bt_bot.py
+def setup_behavior_tree():
+    """Construct and return the behavior tree."""
+    
+    root = Selector(name='Root')
+    
+    # Defensive strategy
+    defensive_plan = Sequence(name='Defensive Strategy')
+    check_under_attack = Check(under_attack)
+    defend_action = Action(defend_weakest_planet)
+    defensive_plan.child_nodes = [check_under_attack, defend_action]
+    
+    # Aggressive expansion
+    aggressive_plan = Sequence(name='Aggressive Strategy')
+    check_strongest = Check(have_largest_fleet)
+    check_enemy_available = Check(enemy_planets_available)
+    attack_action = Action(attack_highest_growth_enemy_planet)
+    aggressive_plan.child_nodes = [check_strongest, check_enemy_available, attack_action]
+    
+    # Neutral expansion
+    neutral_plan = Sequence(name='Neutral Expansion')
+    check_neutral_available = Check(neutral_planets_available)
+    spread_action = Action(spread_to_best_growth_neutral)
+    neutral_plan.child_nodes = [check_neutral_available, spread_action]
+    
+    # Fallback attack
+    fallback_attack = Sequence(name='Fallback Attack')
+    attack_weak = Action(attack_weakest_enemy_planet_aggressive)
+    fallback_attack.child_nodes = [check_enemy_available, attack_weak]
+    
+    root.child_nodes = [defensive_plan, aggressive_plan, neutral_plan, fallback_attack]
+    
+    return root
+

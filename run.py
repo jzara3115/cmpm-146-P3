@@ -52,22 +52,34 @@ def test(bot, opponent_bot, map_num):
             break
 
 
+#given code:
+# if __name__ == '__main__':
+#     path =  os.getcwd()
+#     opponents = ['opponent_bots/easy_bot.py',
+#                  'opponent_bots/spread_bot.py',
+#                  'opponent_bots/aggressive_bot.py',
+#                  'opponent_bots/defensive_bot.py',
+#                  'opponent_bots/production_bot.py']
+
+#     maps = [71, 13, 24, 56, 7]
+
+#     my_bot = 'behavior_tree_bot/bt_bot.py'
+#     show = len(sys.argv) < 2 or sys.argv[1] == "show"
+#     for opponent, map in zip(opponents, maps):
+#         # use this command if you want to observe the bots
+#         if show:
+#             show_match(my_bot, opponent, map)
+#         else:
+#             # use this command if you just want the results of the matches reported
+#             test(my_bot, opponent, map)
+
+
+#my code:
+# Modify run.py's main to just run one match for testing purposes:
 if __name__ == '__main__':
-    path =  os.getcwd()
-    opponents = ['opponent_bots/easy_bot.py',
-                 'opponent_bots/spread_bot.py',
-                 'opponent_bots/aggressive_bot.py',
-                 'opponent_bots/defensive_bot.py',
-                 'opponent_bots/production_bot.py']
-
-    maps = [71, 13, 24, 56, 7]
-
+    path = os.getcwd()
     my_bot = 'behavior_tree_bot/bt_bot.py'
-    show = len(sys.argv) < 2 or sys.argv[1] == "show"
-    for opponent, map in zip(opponents, maps):
-        # use this command if you want to observe the bots
-        if show:
-            show_match(my_bot, opponent, map)
-        else:
-            # use this command if you just want the results of the matches reported
-            test(my_bot, opponent, map)
+    opponent = 'opponent_bots/aggressive_bot.py'
+    map_num = 71  # this is the default first map
+
+    show_match(my_bot, opponent, map_num)
