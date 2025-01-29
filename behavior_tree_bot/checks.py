@@ -13,22 +13,37 @@ def have_largest_fleet(state):
 
 
 # New checks for improved behaviors ! 
-def have_more_growth_rate(state):
-    """Check if we have higher ship production than enemy."""
-    my_growth = sum(p.growth_rate for p in state.my_planets())
-    enemy_growth = sum(p.growth_rate for p in state.enemy_planets())
-    return my_growth > enemy_growth
 
-def under_attack(state):
-    """Check if any of our planets are under attack."""
-    return any(f.destination_planet in [p.ID for p in state.my_planets()] 
-              for f in state.enemy_fleets())
+#NEWEST:
+def have_largest_fleet(state):
+    """Check if we have the largest fleet, counting ships in flight."""
+    my_ships = sum(p.num_ships for p in state.my_planets()) + \
+               sum(f.num_ships for f in state.my_fleets())
+    enemy_ships = sum(p.num_ships for p in state.enemy_planets()) + \
+                  sum(f.num_ships for f in state.enemy_fleets())
+    return my_ships > enemy_ships
+
+def need_defense(state):
+    """Check if any planet needs defense based on ship count."""
+    my_planets = state.my_planets()
+    if not my_planets:
+        return False
+    weakest = min(my_planets, key=lambda p: p.num_ships)
+    return weakest.num_ships < 30
 
 def neutral_planets_available(state):
-    """Check if there are neutral planets worth capturing."""
-    return any(p.growth_rate > 0 for p in state.neutral_planets())
+    """Check for valuable neutral planets near our territory."""
+    neutral_planets = state.neutral_planets()
+    my_planets = state.my_planets()
+    
+    if not neutral_planets or not my_planets:
+        return False
+        
+    return any(p.growth_rate > 0 for p in neutral_planets)
 
-def enemy_planets_available(state):
-    """Check if there are enemy planets to attack."""
-    return len(state.enemy_planets()) > 0
+def early_game_phase(state):
+    """Check if we're in early game (lots of neutral planets)."""
+    neutral_count = len(state.neutral_planets())
+    total_planets = len(state.neutral_planets()) + len(state.enemy_planets()) + len(state.my_planets())
+    return neutral_count > total_planets * 0.3
 

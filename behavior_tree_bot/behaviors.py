@@ -3,7 +3,7 @@ sys.path.insert(0, '../')
 from planet_wars import issue_order
 
 
-def attack_weakest_enemy_planet(state):
+def attack_weakest_enemy_planet_old(state):
     # (1) If we currently have a fleet in flight, abort plan.
     if len(state.my_fleets()) >= 1:
         return False
@@ -22,7 +22,7 @@ def attack_weakest_enemy_planet(state):
         return issue_order(state, strongest_planet.ID, weakest_planet.ID, strongest_planet.num_ships / 2)
 
 
-def spread_to_weakest_neutral_planet(state):
+def spread_to_weakest_neutral_planet_old(state):
     # (1) If we currently have a fleet in flight, just do nothing.
     if len(state.my_fleets()) >= 1:
         return False
@@ -42,86 +42,115 @@ def spread_to_weakest_neutral_planet(state):
 
 
 # New behavior functions:
-# New implementation for behaviors.py
-def attack_weakest_enemy_planet_aggressive(state):
-    """Attack with more ships to ensure conquest."""
-    strongest_planet = max(state.my_planets(), key=lambda t: t.num_ships, default=None)
-    weakest_planet = min(state.enemy_planets(), key=lambda t: t.num_ships, default=None)
-    
-    if not strongest_planet or not weakest_planet:
+def attack_weakest_enemy_planet(state):
+    """Attack enemy's weakest planet with closest fleet."""
+    if len(state.my_fleets()) >= 3:  # Allow more simultaneous attacks
         return False
         
-    required_ships = weakest_planet.num_ships + 1
-    if strongest_planet.num_ships > required_ships:
-        return issue_order(state, strongest_planet.ID, weakest_planet.ID, required_ships)
-    return False
-
-def attack_highest_growth_enemy_planet(state):
-    """Target enemy planets with highest ship production."""
     my_planets = state.my_planets()
-    if len(my_planets) == 0:
-        return False
-        
-    strongest_planet = max(my_planets, key=lambda p: p.num_ships)
+    enemy_planets = state.enemy_planets()
     
-    enemy_planets = [(p, p.growth_rate) for p in state.enemy_planets()]
-    if not enemy_planets:
+    if not my_planets or not enemy_planets:
         return False
-        
-    target_planet = max(enemy_planets, key=lambda p: p[1])[0]
-    required_ships = target_planet.num_ships + 1
+
+    # Find closest enemy planet for each of our planets
+    best_attack = None
+    best_distance = float('inf')
     
-    if strongest_planet.num_ships > required_ships:
-        return issue_order(state, strongest_planet.ID, target_planet.ID, required_ships)
+    for my_planet in my_planets:
+        for enemy_planet in enemy_planets:
+            distance = state.distance(my_planet.ID, enemy_planet.ID)
+            required_ships = enemy_planet.num_ships + 1
+            
+            if my_planet.num_ships > required_ships * 1.1 and distance < best_distance:
+                best_distance = distance
+                best_attack = (my_planet, enemy_planet, required_ships)
+    
+    if best_attack:
+        return issue_order(state, best_attack[0].ID, best_attack[1].ID, best_attack[2])
     return False
 
-def spread_to_best_growth_neutral(state):
-    """Target neutral planets with best growth/cost ratio."""
-    if len(state.my_fleets()) >= 3:  # Limit concurrent expansions
+def spread_to_best_neutral_planet(state):
+    """Aggressively capture neutral planets with good growth/distance ratio."""
+    if len(state.my_fleets()) >= 3:  # Allow more expansion
         return False
         
-    my_planets = [p for p in state.my_planets()]
-    if not my_planets:
-        return False
-        
-    neutral_planets = [(p, p.growth_rate / (p.num_ships + 0.1)) for p in state.neutral_planets()]
-    if not neutral_planets:
-        return False
-        
-    target_planet = max(neutral_planets, key=lambda p: p[1])[0]
-    strongest_planet = max(my_planets, key=lambda p: p.num_ships)
+    my_planets = state.my_planets()
+    neutral_planets = state.neutral_planets()
     
-    if strongest_planet.num_ships > target_planet.num_ships + 1:
-        return issue_order(state, strongest_planet.ID, target_planet.ID, target_planet.num_ships + 1)
+    if not my_planets or not neutral_planets:
+        return False
+
+    best_value = -1
+    best_attack = None
+    
+    for neutral_planet in neutral_planets:
+        if neutral_planet.growth_rate > 0:  # Only consider growing planets
+            for my_planet in my_planets:
+                if my_planet.num_ships <= neutral_planet.num_ships + 1:
+                    continue
+                    
+                distance = state.distance(my_planet.ID, neutral_planet.ID)
+                # Value = growth_rate / (ships_needed * distance)
+                value = neutral_planet.growth_rate / (neutral_planet.num_ships * distance + 0.1)
+                
+                if value > best_value:
+                    best_value = value
+                    best_attack = (my_planet, neutral_planet)
+
+    if best_attack:
+        return issue_order(state, best_attack[0].ID, best_attack[1].ID, 
+                         best_attack[1].num_ships + 1)
     return False
 
-def defend_weakest_planet(state):
-    """Reinforce planets under threat."""
+def attack_high_growth_planet(state):
+    """Target enemy planets with best growth/distance ratio."""
+    if len(state.my_fleets()) >= 3:
+        return False
+        
+    my_planets = state.my_planets()
+    enemy_planets = state.enemy_planets()
+    
+    if not my_planets or not enemy_planets:
+        return False
+
+    best_attack = None
+    best_value = -1
+    
+    for my_planet in my_planets:
+        for enemy_planet in enemy_planets:
+            required_ships = enemy_planet.num_ships + 1
+            if my_planet.num_ships <= required_ships * 1.1:
+                continue
+                
+            distance = state.distance(my_planet.ID, enemy_planet.ID)
+            value = enemy_planet.growth_rate / (distance + 0.1)
+            
+            if value > best_value:
+                best_value = value
+                best_attack = (my_planet, enemy_planet, required_ships)
+
+    if best_attack:
+        return issue_order(state, best_attack[0].ID, best_attack[1].ID, best_attack[2])
+    return False
+
+def defend_weak_planet(state):
+    """Defend weak planets from closest strong planet."""
+    if len(state.my_fleets()) >= 3:
+        return False
+        
     my_planets = [p for p in state.my_planets()]
     if len(my_planets) <= 1:
         return False
-        
-    # Find planets under threat
-    weakest_planet = min(my_planets, key=lambda p: p.num_ships)
-    
-    # Check if there are enemy fleets targeting this planet
-    enemy_fleets = [f for f in state.enemy_fleets() if f.destination_planet == weakest_planet.ID]
-    if not enemy_fleets:
+
+    # Find our weakest and strongest planets
+    weakest = min(my_planets, key=lambda p: p.num_ships)
+    if weakest.num_ships >= 30:  # Don't defend if already strong
         return False
         
-    # Calculate total incoming attack
-    total_attack = sum(f.num_ships for f in enemy_fleets)
-    
-    # Find reinforcement source
-    other_planets = [p for p in my_planets if p.ID != weakest_planet.ID]
-    if not other_planets:
-        return False
-        
-    strongest_planet = max(other_planets, key=lambda p: p.num_ships)
-    
-    # Send reinforcements if we can help
-    ships_needed = total_attack + 1 - weakest_planet.num_ships
-    if strongest_planet.num_ships > ships_needed:
-        return issue_order(state, strongest_planet.ID, weakest_planet.ID, ships_needed)
+    strongest = max(my_planets, key=lambda p: p.num_ships)
+    if weakest.ID != strongest.ID and strongest.num_ships > 40:
+        ships_to_send = strongest.num_ships // 2
+        return issue_order(state, strongest.ID, weakest.ID, ships_to_send)
     return False
 

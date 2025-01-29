@@ -21,25 +21,37 @@ from planet_wars import PlanetWars, finish_turn
 
 # You have to improve this tree or create an entire new one that is capable
 # of winning against all the 5 opponent bots
+
+# New behavior tree for our bot using new functions in bt_bot.py
 def setup_behavior_tree():
-
-    # Top-down construction of behavior tree
-    root = Selector(name='High Level Ordering of Strategies')
-
-    offensive_plan = Sequence(name='Offensive Strategy')
-    largest_fleet_check = Check(have_largest_fleet)
-    attack = Action(attack_weakest_enemy_planet)
-    offensive_plan.child_nodes = [largest_fleet_check, attack]
-
-    spread_sequence = Sequence(name='Spread Strategy')
-    neutral_planet_check = Check(if_neutral_planet_available)
-    spread_action = Action(spread_to_weakest_neutral_planet)
-    spread_sequence.child_nodes = [neutral_planet_check, spread_action]
-
-    root.child_nodes = [offensive_plan, spread_sequence, attack.copy()]
-
-    logging.info('\n' + root.tree_to_string())
+    """Set up the behavior tree for the bot."""
+    root = Selector(name='Root')
+    
+    # Early game expansion
+    early_expansion = Sequence(name='Early Game Expansion')
+    early_game_check = Check(early_game_phase)
+    neutral_expansion = Action(spread_to_best_neutral_planet)
+    early_expansion.child_nodes = [early_game_check, neutral_expansion]
+    
+    # Defensive plan
+    defensive_plan = Sequence(name='Defensive Strategy')
+    defense_check = Check(need_defense)
+    defend_action = Action(defend_weak_planet)
+    defensive_plan.child_nodes = [defense_check, defend_action]
+    
+    # Aggressive plan
+    aggressive_plan = Sequence(name='Aggressive Strategy')
+    fleet_check = Check(have_largest_fleet)
+    attack_action = Action(attack_high_growth_planet)
+    aggressive_plan.child_nodes = [fleet_check, attack_action]
+    
+    # Fallback plan
+    fallback_attack = Action(attack_weakest_enemy_planet)
+    
+    root.child_nodes = [early_expansion, defensive_plan, aggressive_plan, fallback_attack]
+    
     return root
+
 
 # You don't need to change this function
 def do_turn(state):
@@ -70,37 +82,4 @@ if __name__ == '__main__':
 
 
 
-# New behavior tree for our bot using new functions in bt_bot.py
-def setup_behavior_tree():
-    """Construct and return the behavior tree."""
-    
-    root = Selector(name='Root')
-    
-    # Defensive strategy
-    defensive_plan = Sequence(name='Defensive Strategy')
-    check_under_attack = Check(under_attack)
-    defend_action = Action(defend_weakest_planet)
-    defensive_plan.child_nodes = [check_under_attack, defend_action]
-    
-    # Aggressive expansion
-    aggressive_plan = Sequence(name='Aggressive Strategy')
-    check_strongest = Check(have_largest_fleet)
-    check_enemy_available = Check(enemy_planets_available)
-    attack_action = Action(attack_highest_growth_enemy_planet)
-    aggressive_plan.child_nodes = [check_strongest, check_enemy_available, attack_action]
-    
-    # Neutral expansion
-    neutral_plan = Sequence(name='Neutral Expansion')
-    check_neutral_available = Check(neutral_planets_available)
-    spread_action = Action(spread_to_best_growth_neutral)
-    neutral_plan.child_nodes = [check_neutral_available, spread_action]
-    
-    # Fallback attack
-    fallback_attack = Sequence(name='Fallback Attack')
-    attack_weak = Action(attack_weakest_enemy_planet_aggressive)
-    fallback_attack.child_nodes = [check_enemy_available, attack_weak]
-    
-    root.child_nodes = [defensive_plan, aggressive_plan, neutral_plan, fallback_attack]
-    
-    return root
 
