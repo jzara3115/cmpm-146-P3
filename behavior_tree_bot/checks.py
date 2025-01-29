@@ -1,20 +1,6 @@
-
-
 def if_neutral_planet_available(state):
     return any(state.neutral_planets())
 
-
-def have_largest_fleet(state):
-    return sum(planet.num_ships for planet in state.my_planets()) \
-             + sum(fleet.num_ships for fleet in state.my_fleets()) \
-           > sum(planet.num_ships for planet in state.enemy_planets()) \
-             + sum(fleet.num_ships for fleet in state.enemy_fleets())
-
-
-
-# New checks for improved behaviors ! 
-
-#NEWEST:
 def have_largest_fleet(state):
     """Check if we have the largest fleet, counting ships in flight."""
     my_ships = sum(p.num_ships for p in state.my_planets()) + \
@@ -52,5 +38,4 @@ def under_attack(state):
     my_planets = state.my_planets()
     if not my_planets:
         return False
-    return any(planet.num_ships < 10 for planet in my_planets)
-
+    return any(planet.num_ships < 20 for planet in my_planets)

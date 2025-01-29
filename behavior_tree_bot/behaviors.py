@@ -1,4 +1,5 @@
 import sys
+from checks import early_game_phase, have_largest_fleet
 sys.path.insert(0, '../')
 from planet_wars import issue_order
 
@@ -72,7 +73,8 @@ def attack_weakest_enemy_planet(state):
 
 def spread_to_best_neutral_planet(state):
     """Aggressively capture neutral planets with good growth/distance ratio."""
-    if len(state.my_fleets()) >= 3:  # Allow more expansion
+    max_fleets = 5 if early_game_phase(state) else 3
+    if len(state.my_fleets()) >= max_fleets:
         return False
         
     my_planets = state.my_planets()
@@ -105,7 +107,8 @@ def spread_to_best_neutral_planet(state):
 
 def attack_high_growth_planet(state):
     """Target enemy planets with best growth/distance ratio."""
-    if len(state.my_fleets()) >= 3:
+    max_fleets = 5 if have_largest_fleet(state) else 3
+    if len(state.my_fleets()) >= max_fleets:
         return False
         
     my_planets = state.my_planets()
@@ -136,7 +139,7 @@ def attack_high_growth_planet(state):
 
 def defend_weak_planet(state):
     """Defend weak planets from closest strong planet."""
-    if len(state.my_fleets()) >= 5:
+    if len(state.my_fleets()) >= 6:
         return False
 
     my_planets = state.my_planets()
@@ -176,4 +179,3 @@ def defend_weak_planet(state):
 
     except StopIteration:
         return False
-
