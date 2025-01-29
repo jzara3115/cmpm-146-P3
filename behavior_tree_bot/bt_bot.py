@@ -46,9 +46,11 @@ def setup_behavior_tree():
     aggressive_plan.child_nodes = [fleet_check, attack_action]
     
     # Fallback plan
+    fallback_plan = Sequence(name='Fallback Strategy')
+    fallback_action = Action(defend_weak_planet)
     fallback_attack = Action(attack_weakest_enemy_planet)
     
-    root.child_nodes = [early_expansion, defensive_plan, aggressive_plan, fallback_attack]
+    root.child_nodes = [early_expansion, aggressive_plan, defensive_plan, fallback_plan]
     
     return root
 

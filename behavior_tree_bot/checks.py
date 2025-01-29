@@ -47,3 +47,10 @@ def early_game_phase(state):
     total_planets = len(state.neutral_planets()) + len(state.enemy_planets()) + len(state.my_planets())
     return neutral_count > total_planets * 0.3
 
+def under_attack(state):
+    """Check if we are losing planets rapidly."""
+    my_planets = state.my_planets()
+    if not my_planets:
+        return False
+    return any(planet.num_ships < 10 for planet in my_planets)
+

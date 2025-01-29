@@ -136,21 +136,44 @@ def attack_high_growth_planet(state):
 
 def defend_weak_planet(state):
     """Defend weak planets from closest strong planet."""
-    if len(state.my_fleets()) >= 3:
-        return False
-        
-    my_planets = [p for p in state.my_planets()]
-    if len(my_planets) <= 1:
+    if len(state.my_fleets()) >= 5:
         return False
 
-    # Find our weakest and strongest planets
-    weakest = min(my_planets, key=lambda p: p.num_ships)
-    if weakest.num_ships >= 30:  # Don't defend if already strong
+    my_planets = state.my_planets()
+    if not my_planets:
         return False
-        
-    strongest = max(my_planets, key=lambda p: p.num_ships)
-    if weakest.ID != strongest.ID and strongest.num_ships > 40:
-        ships_to_send = strongest.num_ships // 2
-        return issue_order(state, strongest.ID, weakest.ID, ships_to_send)
-    return False
+
+    def strength(p):
+        return p.num_ships + sum(fleet.num_ships for fleet in state.my_fleets() if fleet.destination_planet == p.ID) - sum(fleet.num_ships for fleet in state.enemy_fleets() if fleet.destination_planet == p.ID)
+
+    avg = sum(strength(planet) for planet in my_planets) / len(my_planets)
+
+    weak_planets = [planet for planet in my_planets if strength(planet) < avg]
+    strong_planets = [planet for planet in my_planets if strength(planet) > avg]
+
+    if not weak_planets or not strong_planets:
+        return False
+
+    weak_planets = iter(sorted(weak_planets, key=strength))
+    strong_planets = iter(sorted(strong_planets, key=strength, reverse=True))
+
+    try:
+        weak_planet = next(weak_planets)
+        strong_planet = next(strong_planets)
+        while True:
+            need = int(avg - strength(weak_planet))
+            have = int(strength(strong_planet) - avg)
+
+            if have >= need > 0:
+                issue_order(state, strong_planet.ID, weak_planet.ID, need)
+                weak_planet = next(weak_planets)
+                strong_planet = next(strong_planets)
+            elif have > 0:
+                issue_order(state, strong_planet.ID, weak_planet.ID, have)
+                strong_planet = next(strong_planets)
+            else:
+                weak_planet = next(weak_planets)
+
+    except StopIteration:
+        return False
 
