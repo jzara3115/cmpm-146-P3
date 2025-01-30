@@ -32,10 +32,17 @@ def setup_behavior_tree():
     early_game_check = Check(early_game_phase)
     neutral_expansion = Action(spread_to_best_neutral_planet)
     early_expansion.child_nodes = [early_game_check, neutral_expansion]
+
+    early_lose_fallback = Sequence(name='Early Losing Fallback')
+    early_lose_check = Check(early_losing)
+    aggressive_neutral_expansion = Action(spread_to_best_neutral_planet)
+    early_attack = Action(attack_weakest_enemy_planet)
+    early_lose_fallback.child_nodes = [early_lose_check,aggressive_neutral_expansion, early_attack]
     
     # Defensive plan
     defensive_plan = Sequence(name='Defensive Strategy')
     defense_check = Check(need_defense)
+    early_lose_check = Check(early_losing)
     defend_action = Action(defend_weak_planet)
     defensive_plan.child_nodes = [defense_check, defend_action]
     
@@ -48,7 +55,7 @@ def setup_behavior_tree():
     # Fallback plan
     fallback_attack = Action(attack_weakest_enemy_planet)
     
-    root.child_nodes = [early_expansion, defensive_plan, aggressive_plan, fallback_attack]
+    root.child_nodes = [early_expansion, defensive_plan, aggressive_plan, early_lose_fallback,  fallback_attack]
     
     return root
 

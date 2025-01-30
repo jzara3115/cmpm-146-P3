@@ -1,5 +1,5 @@
 import sys
-from checks import early_game_phase, have_largest_fleet
+from checks import early_game_phase, have_largest_fleet, early_losing
 sys.path.insert(0, '../')
 from planet_wars import issue_order
 
@@ -45,7 +45,8 @@ def spread_to_weakest_neutral_planet_old(state):
 # New behavior functions:
 def attack_weakest_enemy_planet(state):
     """Attack enemy's weakest planet with closest fleet."""
-    if len(state.my_fleets()) >= 3:  # Allow more simultaneous attacks
+    maxfleet = 2 if early_losing(state) else 1
+    if len(state.my_fleets()) >= maxfleet: 
         return False
         
     my_planets = state.my_planets()
@@ -56,24 +57,27 @@ def attack_weakest_enemy_planet(state):
 
     # Find closest enemy planet for each of our planets
     best_attack = None
+    best_value = -1
     best_distance = float('inf')
     
     for my_planet in my_planets:
         for enemy_planet in enemy_planets:
             distance = state.distance(my_planet.ID, enemy_planet.ID)
             required_ships = enemy_planet.num_ships + 1
-            
-            if my_planet.num_ships > required_ships * 1.1 and distance < best_distance:
-                best_distance = distance
+            value =  my_planet.num_ships - required_ships / distance + 0.1
+                
+            if value > best_value:
+                best_value = value
                 best_attack = (my_planet, enemy_planet, required_ships)
     
     if best_attack:
-        return issue_order(state, best_attack[0].ID, best_attack[1].ID, best_attack[2])
+        return issue_order(state, best_attack[0].ID, best_attack[1].ID, 
+                         best_attack[1].num_ships + 1)
     return False
 
 def spread_to_best_neutral_planet(state):
     """Aggressively capture neutral planets with good growth/distance ratio."""
-    max_fleets = 5 if early_game_phase(state) else 3
+    max_fleets = 5 if early_game_phase(state) else 6 if early_losing(state) else 3
     if len(state.my_fleets()) >= max_fleets:
         return False
         
@@ -107,7 +111,7 @@ def spread_to_best_neutral_planet(state):
 
 def attack_high_growth_planet(state):
     """Target enemy planets with best growth/distance ratio."""
-    max_fleets = 5 if have_largest_fleet(state) else 3
+    max_fleets = 5 if have_largest_fleet(state) else 6 if early_losing(state) else 3
     if len(state.my_fleets()) >= max_fleets:
         return False
         
